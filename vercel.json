@@ -1,17 +1,5 @@
 {
   "version": 2,
-  "name": "freelance-hunter",
-  "builds": [
-    {
-      "src": "api/**/*.py",
-      "use": "@vercel/python"
-    }
-  ],
-  "routes": [
-    { "src": "/api/(.*)", "dest": "/api/$1" },
-    { "src": "/",         "dest": "/public/index.html" },
-    { "src": "/(.*)",     "dest": "/public/$1" }
-  ],
   "functions": {
     "api/**/*.py": {
       "runtime": "python3.10",
@@ -19,6 +7,11 @@
       "memory": 1024
     }
   },
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/",         "dest": "/public/index.html" },
+    { "src": "/(.*)",     "dest": "/public/$1" }
+  ],
   "crons": [
     { "path": "/api/parse-jobs",   "schedule": "*/15 * * * *" },
     { "path": "/api/analyze-jobs", "schedule": "*/16 * * * *" }
