@@ -2,13 +2,19 @@
 let allJobs = [];
 let currentFilter   = "all";
 let currentPlatform = "all";
-let currentTab = "all";
+let currentTab      = "all";
 
 const TAB_TITLES = {
-  all: "Дашборд",
-  review: "Ожидают решения",
+  all:      "Дашборд",
+  review:   "Ожидают решения",
   approved: "Подходящие задания",
-  profile: "Мой профиль",
+  profile:  "Мой профиль",
+};
+
+// Platform icons & labels
+const PLATFORMS = {
+  "fl.ru":         { icon: "🔵", label: "FL.ru",         color: "#3b82f6" },
+  "freelancehunt": { icon: "🟡", label: "Freelancehunt", color: "#f59e0b" },
 };
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
@@ -20,16 +26,23 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("menu-btn").addEventListener("click", () => {
     document.getElementById("sidebar").classList.toggle("open");
   });
+
+  // Close sidebar on overlay click (mobile)
+  document.addEventListener("click", e => {
+    const sb = document.getElementById("sidebar");
+    if (sb.classList.contains("open") && !sb.contains(e.target) && e.target.id !== "menu-btn") {
+      sb.classList.remove("open");
+    }
+  });
 });
 
 function checkProfile() {
   const local = localStorage.getItem("fh_profile");
   if (!local) {
-    // No profile yet — send to onboarding
     fetch("/api/get-profile")
       .then(r => r.json())
       .then(d => { if (!d.exists) window.location.href = "onboarding.html"; })
-      .catch(() => {}); // If API down, stay on dashboard
+      .catch(() => {});
   }
 }
 
@@ -42,31 +55,25 @@ function setupNav() {
       document.getElementById("sidebar").classList.remove("open");
     });
   });
-
-  document.querySelectorAll(".card-link[data-tab]").forEach(el => {
-    el.addEventListener("click", e => { e.preventDefault(); switchTab(el.dataset.tab); });
-  });
 }
 
 function switchTab(tab) {
   currentTab = tab;
-
   document.querySelectorAll(".tab-pane").forEach(p => p.classList.remove("active"));
   document.querySelectorAll(".nav-item[data-tab]").forEach(n => n.classList.remove("active"));
-
   document.getElementById("tab-" + tab)?.classList.add("active");
   document.querySelector(`[data-tab="${tab}"]`)?.classList.add("active");
   document.getElementById("topbar-title").textContent = TAB_TITLES[tab] || tab;
 
-  if (tab === "review")   renderList("review-list", filtered("review"));
-  if (tab === "approved") renderList("approved-list", filtered("approved"));
+  if (tab === "review")   renderList("review-list",   filtered("review"));
+  if (tab === "approved") renderList("approved-list",  filtered("approved"));
   if (tab === "profile")  renderProfile();
 }
 
 // ── Data loading ──────────────────────────────────────────────────────────────
 async function loadJobs(silent = false) {
   try {
-    const res = await fetch("/api/get-jobs");
+    const res  = await fetch("/api/get-jobs");
     const data = await res.json();
     allJobs = data.jobs || [];
     updateStats(data.stats || {});
@@ -77,7 +84,6 @@ async function loadJobs(silent = false) {
         "Обновлено в " + new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
     }
   } catch {
-    // API unavailable — use demo data
     allJobs = getDemoJobs();
     updateStats(calcStats(allJobs));
     renderCurrentView();
@@ -87,13 +93,14 @@ async function loadJobs(silent = false) {
 
 // ── Stats ─────────────────────────────────────────────────────────────────────
 function calcStats(jobs) {
-  const today = new Date().toDateString();
+  const today = new Date().toISOString().slice(0, 10);
   return {
-    total: jobs.length,
+    total:    jobs.length,
     approved: jobs.filter(j => j.status === "approved").length,
-    review: jobs.filter(j => j.status === "review").length,
+    review:   jobs.filter(j => j.status === "review").length,
     rejected: jobs.filter(j => j.status === "rejected").length,
-    today: jobs.filter(j => new Date(j.created_at).toDateString() === today).length,
+    pending:  jobs.filter(j => j.status === "pending").length,
+    today:    jobs.filter(j => (j.created_at || "").startsWith(today)).length,
   };
 }
 
@@ -106,10 +113,10 @@ function updateStats(stats) {
 
   const r = allJobs.filter(j => j.status === "review").length;
   const a = allJobs.filter(j => j.status === "approved").length;
-  document.getElementById("badge-review").textContent = r;
-  document.getElementById("badge-approved").textContent = a;
-  document.getElementById("badge-review").style.display = r ? "" : "none";
-  document.getElementById("badge-approved").style.display = a ? "" : "none";
+  const reviewBadge   = document.getElementById("badge-review");
+  const approvedBadge = document.getElementById("badge-approved");
+  if (reviewBadge)   { reviewBadge.textContent   = r; reviewBadge.style.display   = r ? "" : "none"; }
+  if (approvedBadge) { approvedBadge.textContent = a; approvedBadge.style.display = a ? "" : "none"; }
 }
 
 // ── Filtering ─────────────────────────────────────────────────────────────────
@@ -137,7 +144,7 @@ function setPlatform(el, platform) {
 function renderCurrentView() {
   renderList("jobs-list", filtered(currentFilter));
   updateStats({});
-  if (currentTab === "review")   renderList("review-list", filtered("review"));
+  if (currentTab === "review")   renderList("review-list",  filtered("review"));
   if (currentTab === "approved") renderList("approved-list", filtered("approved"));
 }
 
@@ -154,75 +161,80 @@ function renderList(containerId, jobs) {
       </div>`;
     return;
   }
-
   el.innerHTML = jobs.map(job => jobCard(job)).join("");
 }
 
 function jobCard(job) {
-  const statusClass = { approved: "status-approved", review: "status-review", rejected: "status-rejected", pending: "status-pending" }[job.status] || "";
-  const statusLabel = { approved: "✅ Подходит", review: "⚡ На проверку", rejected: "❌ Отклонено", pending: "⏳ Анализ..." }[job.status] || job.status;
-  const scoreBar = job.score ? `<div class="score-bar"><div class="score-fill" style="width:${job.score * 10}%;background:${scoreColor(job.score)}"></div></div>` : "";
+  const STATUS = {
+    approved: { cls: "status-approved", label: "✅ Подходит" },
+    review:   { cls: "status-review",   label: "⚡ Проверить" },
+    rejected: { cls: "status-rejected", label: "❌ Отклонено" },
+    pending:  { cls: "status-pending",  label: "⏳ Анализ..." },
+  };
+  const st  = STATUS[job.status] || STATUS.pending;
+  const plt = PLATFORMS[job.platform] || { icon: "🔘", label: job.platform || "—", color: "#666" };
 
-  const price = job.price ? `<span class="job-price">💰 $${job.price}</span>` : `<span class="job-price muted">цена не указана</span>`;
-  const plt = PLATFORMS[job.platform] || { icon: "🔘", label: job.platform };
+  const priceHtml = job.price
+    ? `<span class="job-price">💰 $${job.price}</span>`
+    : `<span class="job-price muted">цена не указана</span>`;
+
+  // Score ring
+  const scoreHtml = job.score ? `
+    <div class="score-ring" title="Оценка ИИ: ${job.score}/10">
+      <svg viewBox="0 0 36 36" class="score-svg">
+        <circle class="score-bg"   cx="18" cy="18" r="15" />
+        <circle class="score-fill" cx="18" cy="18" r="15"
+          stroke="${scoreColor(job.score)}"
+          stroke-dasharray="${job.score * 9.42} 94.2" />
+      </svg>
+      <span class="score-num" style="color:${scoreColor(job.score)}">${job.score}</span>
+    </div>` : "";
 
   const actions = [];
-  if (job.url && job.url !== "#") {
+  if (job.url && job.url !== "#")
     actions.push(`<a href="${esc(job.url)}" target="_blank" rel="noopener" class="job-btn btn-open">🔗 Открыть</a>`);
-  }
   if (job.status === "review") {
-    actions.push(`<button class="job-btn btn-approve" onclick="updateJob('${esc(job.id)}','save')">✅ Хорошо</button>`);
-    actions.push(`<button class="job-btn btn-skip" onclick="updateJob('${esc(job.id)}','skip')">❌ Пропустить</button>`);
+    actions.push(`<button class="job-btn btn-approve" onclick="updateJob('${esc(job.id)}','save')">✅ Сохранить</button>`);
+    actions.push(`<button class="job-btn btn-skip"    onclick="updateJob('${esc(job.id)}','skip')">❌ Пропустить</button>`);
   }
-  if (job.status === "approved") {
+  if (job.status === "approved")
     actions.push(`<button class="job-btn btn-skip" onclick="updateJob('${esc(job.id)}','skip')">❌ Пропустить</button>`);
-  }
-  if (job.status === "rejected") {
+  if (job.status === "rejected")
     actions.push(`<button class="job-btn btn-restore" onclick="updateJob('${esc(job.id)}','restore')">↩️ Восстановить</button>`);
-  }
 
   return `
-    <article class="job-card ${statusClass}" id="card-${esc(job.id)}">
-      <div class="job-card-top">
-        <div class="job-meta-row">
-          <span class="job-platform">${plt.icon} ${plt.label}</span>
-          <span class="job-time">${timeAgo(job.created_at)}</span>
-          <span class="job-status-pill ${statusClass}">${statusLabel}</span>
+    <article class="job-card ${st.cls}" id="card-${esc(job.id)}">
+      <div class="job-card-inner">
+        <div class="job-card-body">
+          <div class="job-meta-row">
+            <span class="job-platform-badge" style="color:${plt.color};border-color:${plt.color}44;background:${plt.color}18">${plt.icon} ${plt.label}</span>
+            <span class="job-time">${timeAgo(job.created_at)}</span>
+            <span class="job-status-pill ${st.cls}">${st.label}</span>
+          </div>
+          <h3 class="job-title">${esc(job.title)}</h3>
+          <div class="job-price-row">
+            ${priceHtml}
+          </div>
+          ${job.reason ? `
+            <div class="job-reason">
+              <span class="reason-label">🤖 ИИ:</span> ${esc(job.reason)}
+            </div>` : ""}
+          ${job.description ? `<p class="job-desc">${esc(job.description.slice(0, 220))}${job.description.length > 220 ? "…" : ""}</p>` : ""}
+          ${actions.length ? `<div class="job-actions">${actions.join("")}</div>` : ""}
         </div>
-        <h3 class="job-title">${esc(job.title)}</h3>
-        <div class="job-price-row">
-          ${price}
-          ${job.score ? `<span class="job-score" style="color:${scoreColor(job.score)}">★ ${job.score}/10</span>` : ""}
-        </div>
+        ${scoreHtml ? `<div class="job-card-score">${scoreHtml}</div>` : ""}
       </div>
-
-      ${job.reason ? `
-        <div class="job-reason">
-          <span class="reason-label">ИИ:</span> ${esc(job.reason)}
-          ${scoreBar}
-        </div>` : ""}
-
-      ${job.description ? `<p class="job-desc">${esc(job.description.slice(0, 200))}${job.description.length > 200 ? "..." : ""}</p>` : ""}
-
-      ${actions.length ? `<div class="job-actions">${actions.join("")}</div>` : ""}
     </article>`;
 }
 
-function scoreColor(score) {
-  if (score >= 8) return "#10b981";
-  if (score >= 5) return "#f59e0b";
+function scoreColor(s) {
+  if (s >= 8) return "#10b981";
+  if (s >= 5) return "#f59e0b";
   return "#ef4444";
 }
 
-// Platform icons & labels
-const PLATFORMS = {
-  "fl.ru":         { icon: "🔵", label: "FL.ru" },
-  "freelancehunt": { icon: "🟡", label: "Freelancehunt" },
-};
-
 // ── Actions ───────────────────────────────────────────────────────────────────
 async function updateJob(jobId, action) {
-  // Optimistic update
   const job = allJobs.find(j => j.id === jobId);
   if (job) {
     if (action === "skip")    job.status = "rejected";
@@ -237,53 +249,78 @@ async function updateJob(jobId, action) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ job_id: jobId, action }),
     });
-  } catch {
-    // Silent fail — local state is already updated
-  }
+  } catch { /* silent fail */ }
 
-  const msgs = { skip: "Задание пропущено", save: "Задание сохранено ✅", restore: "Задание восстановлено" };
+  const msgs = { skip: "Пропущено", save: "Сохранено ✅", restore: "Восстановлено" };
   showToast(msgs[action] || "Готово", action === "save" ? "success" : "info");
 }
 
+// ── Scan: parse → analyze (batched loop) ─────────────────────────────────────
 async function triggerScan() {
   const btn = document.getElementById("scan-btn");
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner"></span> Сканирую...';
+  btn.innerHTML = '<span class="spinner"></span> Парсинг...';
   setStatus("warn", "Сканирование...");
 
   try {
-    const res = await fetch("/api/parse-jobs", { method: "POST" });
-    const d = await res.json();
-    showToast(`Найдено новых: ${d.new_jobs ?? 0}`, "success");
+    // Step 1: parse
+    const parseRes = await fetch("/api/parse-jobs", { method: "POST" });
+    const parseData = await parseRes.json();
+    const newJobs = parseData.new_jobs ?? 0;
+    showToast(`Найдено новых: ${newJobs}`, newJobs > 0 ? "success" : "info");
 
-    // Trigger AI analysis right after
-    await fetch("/api/analyze-jobs", { method: "POST" });
-    await loadJobs(true);
-    showToast("Анализ завершён", "success");
+    if (newJobs === 0) {
+      await loadJobs(true);
+      setStatus("online", "Подключено");
+      return;
+    }
+
+    // Step 2: analyze in batches (handles Vercel 10s timeout)
+    btn.innerHTML = '<span class="spinner"></span> Анализ ИИ...';
+    let totalAnalyzed = 0;
+    let rounds = 0;
+    const MAX_ROUNDS = 20; // safety cap
+
+    while (rounds < MAX_ROUNDS) {
+      const aRes  = await fetch("/api/analyze-jobs", { method: "POST" });
+      const aData = await aRes.json();
+      totalAnalyzed += aData.analyzed || 0;
+      rounds++;
+
+      // Refresh UI after each batch
+      await loadJobs(true);
+
+      if (!aData.has_more) break;
+      // Small pause between batches so UI can breathe
+      await sleep(500);
+    }
+
+    showToast(`Анализ завершён: ${totalAnalyzed} заданий оценено`, "success");
     setStatus("online", "Подключено");
-  } catch {
-    showToast("API недоступен — демо режим", "warn");
-    setStatus("warn", "Демо режим");
+  } catch (e) {
+    console.error(e);
+    showToast("Ошибка при сканировании", "error");
+    setStatus("error", "Ошибка");
   } finally {
     btn.disabled = false;
     btn.innerHTML = "🔄 Сканировать";
+    document.getElementById("last-update").textContent =
+      "Обновлено в " + new Date().toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
   }
 }
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 // ── Profile tab ───────────────────────────────────────────────────────────────
 async function renderProfile() {
   let profile = null;
-
-  // Try local first, then API
   const local = localStorage.getItem("fh_profile");
-  if (local) {
-    try { profile = JSON.parse(local); } catch {}
-  }
+  if (local) { try { profile = JSON.parse(local); } catch {} }
 
   if (!profile) {
     try {
-      const res = await fetch("/api/get-profile");
-      const d = await res.json();
+      const res  = await fetch("/api/get-profile");
+      const d    = await res.json();
       profile = d.profile;
     } catch {}
   }
@@ -292,24 +329,24 @@ async function renderProfile() {
   if (!el) return;
 
   if (!profile) {
-    el.innerHTML = `<p>Профиль не найден. <a href="onboarding.html">Пройти настройку →</a></p>`;
+    el.innerHTML = `<p style="color:var(--muted)">Профиль не найден. <a href="onboarding.html" style="color:var(--accent)">Пройти настройку →</a></p>`;
     return;
   }
 
   const EXP = { junior: "🌱 Начинающий", middle: "🔥 Средний", senior: "💎 Опытный" };
-  const DIR = { dev: "💻 Разработка", design: "🎨 Дизайн", copy: "✍️ Копирайтинг", other: "🔧 Другое" };
+  const DIR = { dev: "💻 Разработка",   design: "🎨 Дизайн",    copy: "✍️ Копирайтинг", other: "🔧 Другое" };
 
   el.innerHTML = `
     <div class="profile-row"><span class="profile-key">Направление</span><span class="profile-val">${DIR[profile.direction] || profile.direction}</span></div>
     <div class="profile-row"><span class="profile-key">Опыт</span><span class="profile-val">${EXP[profile.experience] || profile.experience}</span></div>
-    <div class="profile-row"><span class="profile-key">Мин. цена</span><span class="profile-val">${profile.min_price ? "$" + profile.min_price : "не задана"}</span></div>
+    <div class="profile-row"><span class="profile-key">Мин. цена</span><span class="profile-val">${profile.min_price ? "<strong>$" + profile.min_price + "</strong>" : "не задана"}</span></div>
     <div class="profile-row">
       <span class="profile-key">Навыки</span>
       <span class="profile-val skills-wrap">${(profile.skills || []).map(s => `<span class="ob-tag">${esc(s)}</span>`).join("")}</span>
     </div>
     <div class="profile-row">
       <span class="profile-key">Исключения</span>
-      <span class="profile-val">${(profile.excluded || []).join(", ") || "нет"}</span>
+      <span class="profile-val">${(profile.excluded || []).map(s => `<span class="excl-tag">${esc(s)}</span>`).join("") || '<span style="color:var(--muted)">нет</span>'}</span>
     </div>`;
 }
 
@@ -320,24 +357,22 @@ function showToast(msg, type = "info") {
   el.className = `toast toast-${type}`;
   el.innerHTML = `<span>${icons[type] || ""}</span><span>${esc(msg)}</span>`;
   document.getElementById("toast-box").appendChild(el);
-  setTimeout(() => { el.classList.add("hide"); setTimeout(() => el.remove(), 300); }, 3000);
+  setTimeout(() => { el.classList.add("hide"); setTimeout(() => el.remove(), 350); }, 3500);
 }
 
 // ── Status dot ────────────────────────────────────────────────────────────────
 function setStatus(type, text) {
-  const dot = document.getElementById("status-dot");
-  dot.className = "status-dot " + type;
+  document.getElementById("status-dot").className = "status-dot " + type;
   document.getElementById("status-text").textContent = text;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function esc(s) {
-  return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  return String(s ?? "")
+    .replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
-function setText(id, val) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = val;
-}
+function setText(id, val) { const e = document.getElementById(id); if (e) e.textContent = val; }
 function timeAgo(iso) {
   if (!iso) return "";
   const diff = Date.now() - new Date(iso);
@@ -349,18 +384,17 @@ function timeAgo(iso) {
   return `${Math.floor(h / 24)} д назад`;
 }
 
-// ── Demo data (when API is unavailable) ───────────────────────────────────────
+// ── Demo data ─────────────────────────────────────────────────────────────────
 function getDemoJobs() {
   const now = new Date();
   const ago = m => new Date(now - m * 60000).toISOString();
   return [
-    { id:"d1", platform:"fl.ru",          title:"Разработка Telegram-бота для доставки еды",   description:"Нужен бот с функцией заказа, оплаты через ЮКасса и уведомлениями.", price:850,  url:"#", status:"approved",  score:9,  reason:"Отлично подходит — Python + Telegram Bot в твоём стеке.", created_at: ago(8) },
-    { id:"d2", platform:"freelancehunt", title:"FastAPI бэкенд для мобильного приложения",    description:"REST API, PostgreSQL, авторизация JWT, деплой на VPS.", price:1200, url:"#", status:"approved",  score:10, reason:"Идеальное совпадение навыков и отличный бюджет.", created_at: ago(22) },
-    { id:"d3", platform:"fl.ru",          title:"Парсер товаров с Wildberries",                description:"Собрать цены, остатки, рейтинг по списку SKU в реальном времени.", price:300, url:"#", status:"review",   score:7,  reason:"Парсинг — твоя тема, но цена немного ниже обычного.", created_at: ago(35) },
-    { id:"d4", platform:"freelancehunt", title:"Интернет-магазин на React + Node.js",         description:"Каталог, корзина, личный кабинет, интеграция с 1С.", price:400, url:"#", status:"review",   score:6,  reason:"Подходит по React, но есть интеграция с 1С — уточни детали.", created_at: ago(55) },
-    { id:"d5", platform:"freelancehunt", title:"Data pipeline на Python + Airflow",            description:"ETL процесс для аналитики, PostgreSQL, scheduled tasks.", price:900, url:"#", status:"approved",  score:8,  reason:"Python + базы данных — прямое попадание в стек.", created_at: ago(70) },
-    { id:"d6", platform:"fl.ru",          title:"Сайт-визитка на WordPress",                   description:"Простой корпоративный сайт, 5-7 страниц.", price:80, url:"#", status:"rejected", score:2,  reason:"WordPress в списке исключений + цена ниже минимума.", created_at: ago(90) },
-    { id:"d7", platform:"fl.ru",          title:"Скрипт автоматизации в Excel VBA",            description:"Макрос для формирования отчётов из нескольких таблиц.", price:120, url:"#", status:"rejected", score:3,  reason:"Не ваша специализация, цена ниже минимума.", created_at: ago(120) },
-    { id:"d8", platform:"freelancehunt", title:"Бот для мониторинга цен на маркетплейсах",    description:"Парсинг Wildberries + Ozon, уведомления в Telegram при изменении цены.", price:500, url:"#", status:"approved",  score:9,  reason:"Парсинг + Telegram Bot — идеально под твои навыки.", created_at: ago(140) },
+    { id:"d1", platform:"fl.ru",          title:"Разработка Telegram-бота для доставки еды",        description:"Нужен бот с функцией заказа, оплаты через ЮКасса и уведомлениями для курьеров.", price:850,  url:"#", status:"approved",  score:9,  reason:"Отлично подходит — Python + Telegram Bot прямо в твоём стеке. Бюджет выше минимума.", created_at: ago(8) },
+    { id:"d2", platform:"freelancehunt",  title:"FastAPI бэкенд для мобильного приложения",         description:"REST API, PostgreSQL, авторизация JWT, деплой на VPS. Срочно.", price:1200, url:"#", status:"approved",  score:10, reason:"Идеальное совпадение по всем навыкам: FastAPI, PostgreSQL, JWT. Бюджет отличный.", created_at: ago(22) },
+    { id:"d3", platform:"fl.ru",          title:"Парсер товаров с Wildberries на Python",            description:"Собрать цены, остатки и рейтинг по списку SKU, сохранять в Excel каждый час.", price:300,  url:"#", status:"review",   score:6,  reason:"Парсинг на Python — твоя тема. Цена чуть ниже обычного, стоит уточнить детали.", created_at: ago(35) },
+    { id:"d4", platform:"freelancehunt",  title:"Интернет-магазин на React + Node.js + PostgreSQL",  description:"Каталог товаров, корзина, личный кабинет, интеграция с 1С.", price:400,  url:"#", status:"review",   score:7,  reason:"Хорошее совпадение по React и Node. Интеграция с 1С — уточни объём работы.", created_at: ago(55) },
+    { id:"d5", platform:"freelancehunt",  title:"Data pipeline на Python + Apache Airflow",          description:"ETL-процесс для BI-аналитики, PostgreSQL, scheduled tasks, Docker.", price:900,  url:"#", status:"approved",  score:8,  reason:"Python + базы данных — прямое попадание в стек. Airflow — плюс к скиллам.", created_at: ago(70) },
+    { id:"d6", platform:"fl.ru",          title:"Сайт-визитка на WordPress для стоматологии",        description:"Простой корпоративный сайт, 5–7 страниц, тема Elementor.", price:80,   url:"#", status:"rejected", score:2,  reason:"WordPress в списке исключений. Цена $80 — ниже минимума в три раза.", created_at: ago(90) },
+    { id:"d7", platform:"fl.ru",          title:"Бот для мониторинга цен на маркетплейсах",          description:"Парсинг Wildberries + Ozon, уведомления в Telegram при изменении цены.", price:500,  url:"#", status:"approved",  score:9,  reason:"Парсинг + Telegram Bot — идеально. Бюджет в норме.", created_at: ago(140) },
   ];
 }

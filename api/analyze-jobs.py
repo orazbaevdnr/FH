@@ -1,10 +1,16 @@
-import sys, os
+import sys, os, time
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import json
 from http.server import BaseHTTPRequestHandler
 from lib.kv_storage import KVStorage
 from lib.groq_client import GroqClient
+
+# Vercel Hobby: 10s max execution time
+# Groq free: 30 req/min → need ~2s between requests
+# Process max 5 jobs per call; frontend calls multiple times if needed
+MAX_PER_CALL  = 5
+DELAY_BETWEEN = 1.8   # seconds between Groq calls (stay under 30/min)
 
 
 class handler(BaseHTTPRequestHandler):
@@ -19,32 +25,47 @@ class handler(BaseHTTPRequestHandler):
         pending = [j for j in jobs if j.get("status") == "pending"]
 
         if not pending:
-            self._json({"analyzed": 0, "message": "No pending jobs"})
+            self._json({"analyzed": 0, "remaining": 0, "message": "No pending jobs"})
             return
 
-        groq = GroqClient()
+        # Only process a small batch to stay within Vercel timeout
+        batch = pending[:MAX_PER_CALL]
+        groq  = GroqClient()
         analyzed = 0
-        errors = 0
+        errors   = 0
 
-        for job in pending:
+        # Build lookup for fast update
+        job_map = {j["id"]: j for j in jobs}
+
+        for i, job in enumerate(batch):
             try:
                 result = groq.analyze_job(job, profile)
-                job["status"] = result["decision"]
-                job["score"] = result["score"]
-                job["reason"] = result["reason"]
+                job_map[job["id"]]["status"] = result["decision"]
+                job_map[job["id"]]["score"]  = result["score"]
+                job_map[job["id"]]["reason"] = result["reason"]
                 analyzed += 1
+                print(f"[analyze] {job['id']} → {result['decision']} ({result['score']}/10)")
             except Exception as e:
-                print(f"[analyze] {job['id']}: {e}")
-                # Don't block: mark as review so user sees it
-                job["status"] = "review"
-                job["score"] = 5
-                job["reason"] = "Не удалось проанализировать автоматически"
+                print(f"[analyze] {job['id']} error: {e}")
+                # Don't mark as reviewed — keep as pending so next call retries
                 errors += 1
 
-        kv.set("jobs", jobs)
-        self._json({"analyzed": analyzed, "errors": errors})
+            # Save progress after EACH job so timeout doesn't lose work
+            updated_jobs = list(job_map.values())
+            kv.set("jobs", updated_jobs)
 
-    # Vercel cron fires GET
+            # Rate-limit: sleep between requests (skip after last)
+            if i < len(batch) - 1:
+                time.sleep(DELAY_BETWEEN)
+
+        remaining = len(pending) - analyzed
+        self._json({
+            "analyzed":  analyzed,
+            "errors":    errors,
+            "remaining": max(0, remaining),
+            "has_more":  remaining > 0,
+        })
+
     def do_GET(self):
         self.do_POST()
 
