@@ -94,6 +94,13 @@
             <button class="filter-btn" data-filter="review" onclick="setFilter(this,'review')">⚡ На проверку</button>
             <button class="filter-btn" data-filter="rejected" onclick="setFilter(this,'rejected')">❌ Отклонённые</button>
           </div>
+          <div class="filter-row" style="margin-top:8px">
+            <button class="filter-btn plt active" data-plt="all" onclick="setPlatform(this,'all')">🌐 Все платформы</button>
+            <button class="filter-btn plt" data-plt="fl.ru" onclick="setPlatform(this,'fl.ru')">🔵 FL.ru</button>
+            <button class="filter-btn plt" data-plt="habr" onclick="setPlatform(this,'habr')">🟠 Habr</button>
+            <button class="filter-btn plt" data-plt="kwork" onclick="setPlatform(this,'kwork')">🟣 Kwork</button>
+            <button class="filter-btn plt" data-plt="weblancer" onclick="setPlatform(this,'weblancer')">🟢 Weblancer</button>
+          </div>
         </div>
 
         <div class="jobs-list" id="jobs-list">

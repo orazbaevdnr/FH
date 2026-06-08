@@ -1,6 +1,7 @@
 // ── State ─────────────────────────────────────────────────────────────────────
 let allJobs = [];
-let currentFilter = "all";
+let currentFilter   = "all";
+let currentPlatform = "all";
 let currentTab = "all";
 
 const TAB_TITLES = {
@@ -113,15 +114,23 @@ function updateStats(stats) {
 
 // ── Filtering ─────────────────────────────────────────────────────────────────
 function filtered(status) {
-  if (status === "all") return allJobs;
-  return allJobs.filter(j => j.status === status);
+  let jobs = status === "all" ? allJobs : allJobs.filter(j => j.status === status);
+  if (currentPlatform !== "all") jobs = jobs.filter(j => j.platform === currentPlatform);
+  return jobs;
 }
 
 function setFilter(el, filter) {
   currentFilter = filter;
-  document.querySelectorAll(".filter-btn").forEach(b => b.classList.remove("active"));
+  document.querySelectorAll(".filter-btn:not(.plt)").forEach(b => b.classList.remove("active"));
   el.classList.add("active");
   renderList("jobs-list", filtered(filter));
+}
+
+function setPlatform(el, platform) {
+  currentPlatform = platform;
+  document.querySelectorAll(".filter-btn.plt").forEach(b => b.classList.remove("active"));
+  el.classList.add("active");
+  renderList("jobs-list", filtered(currentFilter));
 }
 
 // ── Rendering ─────────────────────────────────────────────────────────────────
@@ -155,6 +164,7 @@ function jobCard(job) {
   const scoreBar = job.score ? `<div class="score-bar"><div class="score-fill" style="width:${job.score * 10}%;background:${scoreColor(job.score)}"></div></div>` : "";
 
   const price = job.price ? `<span class="job-price">💰 $${job.price}</span>` : `<span class="job-price muted">цена не указана</span>`;
+  const plt = PLATFORMS[job.platform] || { icon: "🔘", label: job.platform };
 
   const actions = [];
   if (job.url && job.url !== "#") {
@@ -175,7 +185,7 @@ function jobCard(job) {
     <article class="job-card ${statusClass}" id="card-${esc(job.id)}">
       <div class="job-card-top">
         <div class="job-meta-row">
-          <span class="job-platform">🔵 FL.ru</span>
+          <span class="job-platform">${plt.icon} ${plt.label}</span>
           <span class="job-time">${timeAgo(job.created_at)}</span>
           <span class="job-status-pill ${statusClass}">${statusLabel}</span>
         </div>
@@ -203,6 +213,14 @@ function scoreColor(score) {
   if (score >= 5) return "#f59e0b";
   return "#ef4444";
 }
+
+// Platform icons & labels
+const PLATFORMS = {
+  "fl.ru":     { icon: "🔵", label: "FL.ru" },
+  "habr":      { icon: "🟠", label: "Habr" },
+  "kwork":     { icon: "🟣", label: "Kwork" },
+  "weblancer": { icon: "🟢", label: "Weblancer" },
+};
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 async function updateJob(jobId, action) {
@@ -338,11 +356,13 @@ function getDemoJobs() {
   const now = new Date();
   const ago = m => new Date(now - m * 60000).toISOString();
   return [
-    { id:"d1", platform:"fl.ru", title:"Разработка Telegram-бота для доставки еды", description:"Нужен бот с функцией заказа, оплаты через ЮКасса и уведомлениями.", price:850, url:"#", status:"approved", score:9, reason:"Отлично подходит — Python + Telegram Bot в твоём стеке.", created_at: ago(8) },
-    { id:"d2", platform:"fl.ru", title:"FastAPI бэкенд для мобильного приложения", description:"REST API, PostgreSQL, авторизация JWT, деплой на VPS.", price:1200, url:"#", status:"approved", score:10, reason:"Идеальное совпадение навыков и отличный бюджет.", created_at: ago(22) },
-    { id:"d3", platform:"fl.ru", title:"Парсер товаров с Wildberries", description:"Собрать цены, остатки, рейтинг по списку SKU.", price:300, url:"#", status:"review", score:7, reason:"Парсинг — твоя тема, но цена немного ниже обычного.", created_at: ago(35) },
-    { id:"d4", platform:"fl.ru", title:"Интернет-магазин на React + Node.js", description:"Каталог, корзина, личный кабинет, интеграция с 1С.", price:400, url:"#", status:"review", score:6, reason:"Подходит по React, но есть интеграция с 1С — уточни детали.", created_at: ago(55) },
-    { id:"d5", platform:"fl.ru", title:"Сайт-визитка на WordPress", description:"Простой корпоративный сайт, 5-7 страниц.", price:80, url:"#", status:"rejected", score:2, reason:"WordPress в списке исключений + цена ниже минимума.", created_at: ago(90) },
-    { id:"d6", platform:"fl.ru", title:"Скрипт автоматизации в Excel VBA", description:"Макрос для формирования отчётов из нескольких таблиц.", price:120, url:"#", status:"rejected", score:3, reason:"Не ваша специализация, цена ниже минимума.", created_at: ago(120) },
+    { id:"d1", platform:"fl.ru",      title:"Разработка Telegram-бота для доставки еды",   description:"Нужен бот с функцией заказа, оплаты через ЮКасса и уведомлениями.", price:850,  url:"#", status:"approved",  score:9,  reason:"Отлично подходит — Python + Telegram Bot в твоём стеке.", created_at: ago(8) },
+    { id:"d2", platform:"habr",       title:"FastAPI бэкенд для мобильного приложения",    description:"REST API, PostgreSQL, авторизация JWT, деплой на VPS.", price:1200, url:"#", status:"approved",  score:10, reason:"Идеальное совпадение навыков и отличный бюджет.", created_at: ago(22) },
+    { id:"d3", platform:"kwork",      title:"Парсер товаров с Wildberries",                description:"Собрать цены, остатки, рейтинг по списку SKU в реальном времени.", price:300, url:"#", status:"review",   score:7,  reason:"Парсинг — твоя тема, но цена немного ниже обычного.", created_at: ago(35) },
+    { id:"d4", platform:"weblancer",  title:"Интернет-магазин на React + Node.js",         description:"Каталог, корзина, личный кабинет, интеграция с 1С.", price:400, url:"#", status:"review",   score:6,  reason:"Подходит по React, но есть интеграция с 1С — уточни детали.", created_at: ago(55) },
+    { id:"d5", platform:"habr",       title:"Data pipeline на Python + Airflow",            description:"ETL процесс для аналитики, PostgreSQL, scheduled tasks.", price:900, url:"#", status:"approved",  score:8,  reason:"Python + базы данных — прямое попадание в стек.", created_at: ago(70) },
+    { id:"d6", platform:"fl.ru",      title:"Сайт-визитка на WordPress",                   description:"Простой корпоративный сайт, 5-7 страниц.", price:80, url:"#", status:"rejected", score:2,  reason:"WordPress в списке исключений + цена ниже минимума.", created_at: ago(90) },
+    { id:"d7", platform:"kwork",      title:"Скрипт автоматизации в Excel VBA",            description:"Макрос для формирования отчётов из нескольких таблиц.", price:120, url:"#", status:"rejected", score:3,  reason:"Не ваша специализация, цена ниже минимума.", created_at: ago(120) },
+    { id:"d8", platform:"weblancer",  title:"Бот для мониторинга цен на маркетплейсах",    description:"Парсинг Wildberries + Ozon, уведомления в Telegram при изменении цены.", price:500, url:"#", status:"approved",  score:9,  reason:"Парсинг + Telegram Bot — идеально под твои навыки.", created_at: ago(140) },
   ];
 }
