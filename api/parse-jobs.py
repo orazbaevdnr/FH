@@ -3,18 +3,15 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import json
 from http.server import BaseHTTPRequestHandler
-from lib.kv_storage import KVStorage
-from lib.fl_parser       import parse_fl
-from lib.habr_parser     import parse_habr
-from lib.kwork_parser    import parse_kwork
-from lib.weblancer_parser import parse_weblancer
+from lib.kv_storage           import KVStorage
+from lib.fl_parser            import parse_fl
+from lib.freelancehunt_parser import parse_freelancehunt
 
-# Все активные платформы
+# FL.ru + Freelancehunt — оба с рабочими RSS
+# Habr/Kwork/Weblancer закрыли публичные RSS в 2024-2025
 PARSERS = {
-    "fl.ru":      parse_fl,
-    "habr":       parse_habr,
-    "kwork":      parse_kwork,
-    "weblancer":  parse_weblancer,
+    "fl.ru":         parse_fl,
+    "freelancehunt": parse_freelancehunt,
 }
 
 
@@ -22,7 +19,7 @@ class handler(BaseHTTPRequestHandler):
     def do_POST(self):
         self._run()
 
-    def do_GET(self):   # Vercel cron fires GET
+    def do_GET(self):   # Vercel cron
         self._run()
 
     def _run(self):
@@ -35,7 +32,7 @@ class handler(BaseHTTPRequestHandler):
 
         for platform, parser_fn in PARSERS.items():
             try:
-                jobs = parser_fn(max_items=40)
+                jobs = parser_fn(max_items=50)
                 fresh = [j for j in jobs if j["id"] not in existing_ids]
                 for j in fresh:
                     existing_ids.add(j["id"])
@@ -47,16 +44,20 @@ class handler(BaseHTTPRequestHandler):
                 results[platform] = {"error": str(e)}
 
         if new_jobs:
-            kv.set("jobs", existing + new_jobs)
+            # Keep last 500 jobs max to avoid KV bloat
+            all_jobs = existing + new_jobs
+            if len(all_jobs) > 500:
+                all_jobs = all_jobs[-500:]
+            kv.set("jobs", all_jobs)
 
         self._json({
-            "new_jobs": len(new_jobs),
-            "total":    len(existing) + len(new_jobs),
+            "new_jobs":  len(new_jobs),
+            "total":     len(existing) + len(new_jobs),
             "platforms": results,
         })
 
     def _json(self, data, status=200):
-        body = json.dumps(data).encode()
+        body = json.dumps(data, ensure_ascii=False).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Access-Control-Allow-Origin", "*")

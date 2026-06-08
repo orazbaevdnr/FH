@@ -216,10 +216,8 @@ function scoreColor(score) {
 
 // Platform icons & labels
 const PLATFORMS = {
-  "fl.ru":     { icon: "🔵", label: "FL.ru" },
-  "habr":      { icon: "🟠", label: "Habr" },
-  "kwork":     { icon: "🟣", label: "Kwork" },
-  "weblancer": { icon: "🟢", label: "Weblancer" },
+  "fl.ru":         { icon: "🔵", label: "FL.ru" },
+  "freelancehunt": { icon: "🟡", label: "Freelancehunt" },
 };
 
 // ── Actions ───────────────────────────────────────────────────────────────────
@@ -356,13 +354,13 @@ function getDemoJobs() {
   const now = new Date();
   const ago = m => new Date(now - m * 60000).toISOString();
   return [
-    { id:"d1", platform:"fl.ru",      title:"Разработка Telegram-бота для доставки еды",   description:"Нужен бот с функцией заказа, оплаты через ЮКасса и уведомлениями.", price:850,  url:"#", status:"approved",  score:9,  reason:"Отлично подходит — Python + Telegram Bot в твоём стеке.", created_at: ago(8) },
-    { id:"d2", platform:"habr",       title:"FastAPI бэкенд для мобильного приложения",    description:"REST API, PostgreSQL, авторизация JWT, деплой на VPS.", price:1200, url:"#", status:"approved",  score:10, reason:"Идеальное совпадение навыков и отличный бюджет.", created_at: ago(22) },
-    { id:"d3", platform:"kwork",      title:"Парсер товаров с Wildberries",                description:"Собрать цены, остатки, рейтинг по списку SKU в реальном времени.", price:300, url:"#", status:"review",   score:7,  reason:"Парсинг — твоя тема, но цена немного ниже обычного.", created_at: ago(35) },
-    { id:"d4", platform:"weblancer",  title:"Интернет-магазин на React + Node.js",         description:"Каталог, корзина, личный кабинет, интеграция с 1С.", price:400, url:"#", status:"review",   score:6,  reason:"Подходит по React, но есть интеграция с 1С — уточни детали.", created_at: ago(55) },
-    { id:"d5", platform:"habr",       title:"Data pipeline на Python + Airflow",            description:"ETL процесс для аналитики, PostgreSQL, scheduled tasks.", price:900, url:"#", status:"approved",  score:8,  reason:"Python + базы данных — прямое попадание в стек.", created_at: ago(70) },
-    { id:"d6", platform:"fl.ru",      title:"Сайт-визитка на WordPress",                   description:"Простой корпоративный сайт, 5-7 страниц.", price:80, url:"#", status:"rejected", score:2,  reason:"WordPress в списке исключений + цена ниже минимума.", created_at: ago(90) },
-    { id:"d7", platform:"kwork",      title:"Скрипт автоматизации в Excel VBA",            description:"Макрос для формирования отчётов из нескольких таблиц.", price:120, url:"#", status:"rejected", score:3,  reason:"Не ваша специализация, цена ниже минимума.", created_at: ago(120) },
-    { id:"d8", platform:"weblancer",  title:"Бот для мониторинга цен на маркетплейсах",    description:"Парсинг Wildberries + Ozon, уведомления в Telegram при изменении цены.", price:500, url:"#", status:"approved",  score:9,  reason:"Парсинг + Telegram Bot — идеально под твои навыки.", created_at: ago(140) },
+    { id:"d1", platform:"fl.ru",          title:"Разработка Telegram-бота для доставки еды",   description:"Нужен бот с функцией заказа, оплаты через ЮКасса и уведомлениями.", price:850,  url:"#", status:"approved",  score:9,  reason:"Отлично подходит — Python + Telegram Bot в твоём стеке.", created_at: ago(8) },
+    { id:"d2", platform:"freelancehunt", title:"FastAPI бэкенд для мобильного приложения",    description:"REST API, PostgreSQL, авторизация JWT, деплой на VPS.", price:1200, url:"#", status:"approved",  score:10, reason:"Идеальное совпадение навыков и отличный бюджет.", created_at: ago(22) },
+    { id:"d3", platform:"fl.ru",          title:"Парсер товаров с Wildberries",                description:"Собрать цены, остатки, рейтинг по списку SKU в реальном времени.", price:300, url:"#", status:"review",   score:7,  reason:"Парсинг — твоя тема, но цена немного ниже обычного.", created_at: ago(35) },
+    { id:"d4", platform:"freelancehunt", title:"Интернет-магазин на React + Node.js",         description:"Каталог, корзина, личный кабинет, интеграция с 1С.", price:400, url:"#", status:"review",   score:6,  reason:"Подходит по React, но есть интеграция с 1С — уточни детали.", created_at: ago(55) },
+    { id:"d5", platform:"freelancehunt", title:"Data pipeline на Python + Airflow",            description:"ETL процесс для аналитики, PostgreSQL, scheduled tasks.", price:900, url:"#", status:"approved",  score:8,  reason:"Python + базы данных — прямое попадание в стек.", created_at: ago(70) },
+    { id:"d6", platform:"fl.ru",          title:"Сайт-визитка на WordPress",                   description:"Простой корпоративный сайт, 5-7 страниц.", price:80, url:"#", status:"rejected", score:2,  reason:"WordPress в списке исключений + цена ниже минимума.", created_at: ago(90) },
+    { id:"d7", platform:"fl.ru",          title:"Скрипт автоматизации в Excel VBA",            description:"Макрос для формирования отчётов из нескольких таблиц.", price:120, url:"#", status:"rejected", score:3,  reason:"Не ваша специализация, цена ниже минимума.", created_at: ago(120) },
+    { id:"d8", platform:"freelancehunt", title:"Бот для мониторинга цен на маркетплейсах",    description:"Парсинг Wildberries + Ozon, уведомления в Telegram при изменении цены.", price:500, url:"#", status:"approved",  score:9,  reason:"Парсинг + Telegram Bot — идеально под твои навыки.", created_at: ago(140) },
   ];
 }
