@@ -1,0 +1,35 @@
+{
+  "dev": {
+    "label": "💻 Разработка",
+    "skills": [
+      "Python", "JavaScript", "TypeScript", "React", "Vue.js", "Next.js",
+      "Node.js", "FastAPI", "Django", "Flask", "PostgreSQL", "MongoDB",
+      "Docker", "Telegram Bot", "Парсинг", "Автоматизация", "REST API",
+      "GraphQL", "Redis", "Linux", "Git", "PHP", "Laravel", "Go", "Java"
+    ]
+  },
+  "design": {
+    "label": "🎨 Дизайн",
+    "skills": [
+      "Figma", "Adobe XD", "Photoshop", "Illustrator", "UI/UX",
+      "Веб-дизайн", "Мобильный дизайн", "Логотипы", "Брендинг",
+      "Прототипирование", "Дизайн-система", "Анимация", "3D", "Blender"
+    ]
+  },
+  "copy": {
+    "label": "✍️ Копирайтинг",
+    "skills": [
+      "SEO-тексты", "Статьи", "Переводы", "Лендинги", "Email-рассылки",
+      "SMM-контент", "Пресс-релизы", "Технические тексты", "Сторителлинг",
+      "Рерайтинг", "Редактура", "Описания товаров"
+    ]
+  },
+  "other": {
+    "label": "🔧 Другое",
+    "skills": [
+      "Excel", "1C", "Битрикс24", "Управление проектами", "Тестирование",
+      "Data Science", "Machine Learning", "Excel VBA", "Аналитика данных",
+      "Продвижение", "Настройка рекламы", "Таргет"
+    ]
+  }
+}

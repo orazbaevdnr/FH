@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint & Format check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install flake8 black
+
+      - name: Lint with flake8
+        run: |
+          flake8 api/ lib/ --max-line-length=100 --ignore=E203,W503,E501
+
+      - name: Check formatting with black
+        run: |
+          black --check --line-length=100 api/ lib/
+
+  syntax:
+    name: Syntax check (no secrets needed)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Check Python syntax
+        run: |
+          python -m py_compile lib/groq_client.py
+          python -m py_compile lib/kv_storage.py
+          python -m py_compile lib/fl_parser.py
+          python -m py_compile api/save-profile.py
+          python -m py_compile api/get-profile.py
+          python -m py_compile api/parse-jobs.py
+          python -m py_compile api/analyze-jobs.py
+          python -m py_compile api/get-jobs.py
+          python -m py_compile api/update-job.py
+          echo "✅ All files compiled successfully"

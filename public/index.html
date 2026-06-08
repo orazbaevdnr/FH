@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Freelance Hunter</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="dashboard-body">
+
+  <!-- ── Sidebar ─────────────────────────────────────────────────────── -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <span>🎯</span>
+      <span>Freelance Hunter</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-tab="all">
+        <span class="nav-icon">📊</span>
+        <span>Дашборд</span>
+      </a>
+      <a href="#" class="nav-item" data-tab="review">
+        <span class="nav-icon">⚡</span>
+        <span>Ожидают решения</span>
+        <span class="nav-badge" id="badge-review">0</span>
+      </a>
+      <a href="#" class="nav-item" data-tab="approved">
+        <span class="nav-icon">✅</span>
+        <span>Подходящие</span>
+        <span class="nav-badge green" id="badge-approved">0</span>
+      </a>
+      <a href="#" class="nav-item" data-tab="profile">
+        <span class="nav-icon">👤</span>
+        <span>Мой профиль</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-bottom">
+      <button class="scan-btn" id="scan-btn" onclick="triggerScan()">
+        🔄 Сканировать
+      </button>
+      <div class="sidebar-status">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">Загрузка...</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Main ──────────────────────────────────────────────────────────── -->
+  <main class="main">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <button class="menu-btn" id="menu-btn">☰</button>
+      <h1 class="topbar-title" id="topbar-title">Дашборд</h1>
+      <div class="topbar-right">
+        <span class="last-update" id="last-update"></span>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <div class="content">
+
+      <!-- ══ TAB: all (dashboard) ══ -->
+      <section class="tab-pane active" id="tab-all">
+
+        <!-- Stats -->
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-label">Новых сегодня</div>
+            <div class="stat-value" id="stat-today">—</div>
+          </div>
+          <div class="stat-card green">
+            <div class="stat-label">Подходящих</div>
+            <div class="stat-value" id="stat-approved">—</div>
+          </div>
+          <div class="stat-card yellow">
+            <div class="stat-label">Требуют внимания</div>
+            <div class="stat-value" id="stat-review">—</div>
+          </div>
+          <div class="stat-card red">
+            <div class="stat-label">Пропущено</div>
+            <div class="stat-value" id="stat-rejected">—</div>
+          </div>
+        </div>
+
+        <!-- Jobs list -->
+        <div class="section-header">
+          <h2 class="section-title">Все задания</h2>
+          <div class="filter-row">
+            <button class="filter-btn active" data-filter="all" onclick="setFilter(this,'all')">Все</button>
+            <button class="filter-btn" data-filter="approved" onclick="setFilter(this,'approved')">✅ Подходящие</button>
+            <button class="filter-btn" data-filter="review" onclick="setFilter(this,'review')">⚡ На проверку</button>
+            <button class="filter-btn" data-filter="rejected" onclick="setFilter(this,'rejected')">❌ Отклонённые</button>
+          </div>
+        </div>
+
+        <div class="jobs-list" id="jobs-list">
+          <div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <div class="empty-title">Заданий пока нет</div>
+            <div class="empty-hint">Нажми «Сканировать» чтобы загрузить задания с FL.ru</div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ══ TAB: review ══ -->
+      <section class="tab-pane" id="tab-review">
+        <div class="section-header">
+          <h2 class="section-title">⚡ Ожидают решения</h2>
+        </div>
+        <div class="jobs-list" id="review-list"></div>
+      </section>
+
+      <!-- ══ TAB: approved ══ -->
+      <section class="tab-pane" id="tab-approved">
+        <div class="section-header">
+          <h2 class="section-title">✅ Подходящие задания</h2>
+        </div>
+        <div class="jobs-list" id="approved-list"></div>
+      </section>
+
+      <!-- ══ TAB: profile ══ -->
+      <section class="tab-pane" id="tab-profile">
+        <div class="profile-card">
+          <h2 class="section-title" style="margin-bottom:20px">👤 Мой профиль</h2>
+          <div class="profile-grid" id="profile-display">
+            <div class="empty-state">Загрузка...</div>
+          </div>
+          <div style="margin-top:24px">
+            <a href="onboarding.html" class="ob-btn-outline" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none">
+              ✏️ Изменить профиль
+            </a>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /content -->
+  </main>
+
+  <!-- ── Toasts ─────────────────────────────────────────────────────────── -->
+  <div id="toast-box"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
