@@ -1,8 +1,8 @@
 """
-Weblancer.net parser — RSS feed.
+Work-zilla parser — RSS feed.
 
-Weblancer — один из крупнейших русскоязычных фриланс-сайтов.
-RSS v2: https://www.weblancer.net/jobs/feed/  (обновлённый URL, 2024+)
+Work-zilla.com — популярная российская биржа микрозаданий и фриланса.
+RSS: https://work-zilla.com/tasks/rss  (проверено, работает)
 """
 
 import re
@@ -10,21 +10,16 @@ import datetime
 import urllib.request
 import xml.etree.ElementTree as ET
 
-RSS_URLS = [
-    "https://www.weblancer.net/jobs/feed/",       # основной
-    "https://www.weblancer.net/jobs/feed/rss/",   # старый
-]
+RSS_URL = "https://work-zilla.com/tasks/rss"
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36",
     "Accept":     "application/rss+xml, application/xml, text/xml",
     "Accept-Language": "ru-RU,ru;q=0.9",
-    "Referer": "https://www.weblancer.net/",
 }
 
-_PRICE_RE   = re.compile(r"(\d[\d\s]{1,7})\s*(?:руб(?:лей)?|₽|rub)", re.IGNORECASE)
-_USD_RE     = re.compile(r"\$\s*(\d+)", re.IGNORECASE)
-_BUDGET_RE  = re.compile(r"<budget[^>]*>([\d\s]+)</budget>", re.IGNORECASE)
+_PRICE_RE = re.compile(r"(\d[\d\s]{1,8})\s*(?:руб(?:лей)?|₽|rub)", re.IGNORECASE)
+_USD_RE   = re.compile(r"\$\s*(\d+)", re.IGNORECASE)
 
 
 def _strip_html(text: str) -> str:
@@ -32,42 +27,30 @@ def _strip_html(text: str) -> str:
     return re.sub(r"<[^>]+>", "", text).strip()
 
 
-def _parse_price(text: str, raw_xml: str = "") -> int:
-    m = _BUDGET_RE.search(raw_xml or "")
-    if m:
-        val = int(re.sub(r"\s", "", m.group(1)) or 0)
-        return max(1, val // 90) if val > 500 else val
-
+def _parse_price(text: str) -> int:
     m = _USD_RE.search(text or "")
     if m:
         return int(m.group(1))
-
     m = _PRICE_RE.search(text or "")
     if m:
         rub = int(re.sub(r"\s", "", m.group(1)))
         return max(1, rub // 90)
-
     return 0
 
 
-def parse_weblancer(max_items: int = 50) -> list:
-    xml_bytes = None
-    for rss_url in RSS_URLS:
-        try:
-            req = urllib.request.Request(rss_url, headers=HEADERS)
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                xml_bytes = resp.read()
-            break
-        except Exception as e:
-            print(f"[Weblancer] {rss_url} error: {e}")
-
-    if not xml_bytes:
+def parse_workzilla(max_items: int = 50) -> list:
+    try:
+        req = urllib.request.Request(RSS_URL, headers=HEADERS)
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            xml_bytes = resp.read()
+    except Exception as e:
+        print(f"[Work-zilla] fetch error: {e}")
         return []
 
     try:
         root = ET.fromstring(xml_bytes)
     except ET.ParseError as e:
-        print(f"[Weblancer] XML parse error: {e}")
+        print(f"[Work-zilla] XML parse error: {e}")
         return []
 
     jobs = []
@@ -84,11 +67,10 @@ def parse_weblancer(max_items: int = 50) -> list:
         if not title or not url:
             continue
 
-        job_id = "wl_" + re.sub(r"[^0-9]", "", url)[-10:]
-        if len(job_id) < 5:
-            job_id = "wl_" + str(abs(hash(url)))[:10]
+        m = re.search(r"/(\d+)(?:[/?#]|$)", url)
+        job_id = "wz_" + m.group(1) if m else "wz_" + str(abs(hash(url)))[:10]
 
-        price = _parse_price(desc, raw_desc)
+        price = _parse_price(desc) or _parse_price(title)
 
         try:
             dt = datetime.datetime.strptime(pub_date, "%a, %d %b %Y %H:%M:%S %z")
@@ -98,7 +80,7 @@ def parse_weblancer(max_items: int = 50) -> list:
 
         jobs.append({
             "id":          job_id,
-            "platform":    "weblancer",
+            "platform":    "workzilla",
             "title":       title,
             "description": desc,
             "price":       price,
@@ -109,5 +91,5 @@ def parse_weblancer(max_items: int = 50) -> list:
             "created_at":  created_at,
         })
 
-    print(f"[Weblancer] parsed {len(jobs)} jobs")
+    print(f"[Work-zilla] parsed {len(jobs)} jobs")
     return jobs

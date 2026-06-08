@@ -5,12 +5,17 @@ import json
 import datetime
 from http.server import BaseHTTPRequestHandler
 from lib.kv_storage import KVStorage
+from lib.auth import require_user, user_key
 
 ALLOWED_ACTIONS = {"skip", "save", "restore"}
 
 
 class handler(BaseHTTPRequestHandler):
     def do_POST(self):
+        user = require_user(self)
+        if user is None:
+            return
+
         length = int(self.headers.get("Content-Length", 0))
         body = json.loads(self.rfile.read(length)) if length else {}
 
@@ -21,31 +26,27 @@ class handler(BaseHTTPRequestHandler):
             self._json({"error": "job_id and valid action required"}, 400)
             return
 
-        kv = KVStorage()
-        jobs: list = kv.get("jobs") or []
-        job = next((j for j in jobs if j["id"] == job_id), None)
+        kv   = KVStorage()
+        jobs: list = kv.get(user_key(user, "jobs")) or []
+        job  = next((j for j in jobs if j["id"] == job_id), None)
 
         if not job:
             self._json({"error": "Job not found"}, 404)
             return
 
-        if action == "skip":
-            job["status"] = "rejected"
-        elif action == "save":
-            job["status"] = "approved"
-        elif action == "restore":
-            job["status"] = "review"
+        if action == "skip":    job["status"] = "rejected"
+        elif action == "save":  job["status"] = "approved"
+        elif action == "restore": job["status"] = "review"
 
-        kv.set("jobs", jobs)
+        kv.set(user_key(user, "jobs"), jobs)
 
-        # Append to history
-        history: list = kv.get("history") or []
+        history: list = kv.get(user_key(user, "history")) or []
         history.insert(0, {
-            "job_id": job_id,
-            "action": action,
+            "job_id":    job_id,
+            "action":    action,
             "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
         })
-        kv.set("history", history[:500])  # Keep last 500 entries
+        kv.set(user_key(user, "history"), history[:200])
 
         self._json({"status": "ok", "job_id": job_id, "new_status": job["status"]})
 
@@ -53,7 +54,7 @@ class handler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type")
         self.end_headers()
 
     def _json(self, data, status=200):

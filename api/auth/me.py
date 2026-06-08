@@ -1,10 +1,10 @@
+"""GET /api/auth/me — returns current user from Authorization header."""
 import sys, os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 import json
 from http.server import BaseHTTPRequestHandler
-from lib.kv_storage import KVStorage
-from lib.auth import require_user, user_key
+from lib.auth import require_user
 
 
 class handler(BaseHTTPRequestHandler):
@@ -12,15 +12,7 @@ class handler(BaseHTTPRequestHandler):
         user = require_user(self)
         if user is None:
             return
-
-        kv = KVStorage()
-        profile = kv.get(user_key(user, "profile"))
-
-        if not profile:
-            self._json({"exists": False, "profile": None, "user": user})
-            return
-
-        self._json({"exists": True, "profile": profile, "user": user})
+        self._json({"user": user})
 
     def do_OPTIONS(self):
         self.send_response(200)
@@ -30,10 +22,11 @@ class handler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def _json(self, data, status=200):
-        body = json.dumps(data, ensure_ascii=False).encode()
+        body = json.dumps(data).encode()
         self.send_response(status)
         self.send_header("Content-Type", "application/json")
         self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type")
         self.end_headers()
         self.wfile.write(body)
 

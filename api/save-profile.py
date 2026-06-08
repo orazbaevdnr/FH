@@ -4,14 +4,18 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 import json
 from http.server import BaseHTTPRequestHandler
 from lib.kv_storage import KVStorage
+from lib.auth import require_user, user_key
 
 
 class handler(BaseHTTPRequestHandler):
     def do_POST(self):
+        user = require_user(self)
+        if user is None:
+            return
+
         length = int(self.headers.get("Content-Length", 0))
         body = json.loads(self.rfile.read(length)) if length else {}
 
-        # Basic validation
         required = {"direction", "skills", "experience", "min_price"}
         missing = required - body.keys()
         if missing:
@@ -19,19 +23,23 @@ class handler(BaseHTTPRequestHandler):
             return
 
         profile = {
-            "direction": str(body["direction"]),
-            "skills": [str(s) for s in body.get("skills", [])],
+            "direction":  str(body["direction"]),
+            "skills":     [str(s) for s in body.get("skills", [])],
             "experience": str(body["experience"]),
-            "min_price": int(body.get("min_price", 0)),
-            "excluded": [s.strip().lower() for s in body.get("excluded", []) if s.strip()],
+            "min_price":  int(body.get("min_price", 0)),
+            "excluded":   [s.strip().lower() for s in body.get("excluded", []) if s.strip()],
         }
 
         kv = KVStorage()
-        kv.set("profile", profile)
+        kv.set(user_key(user, "profile"), profile)
         self._json({"status": "ok"})
 
     def do_OPTIONS(self):
-        self._cors(200)
+        self.send_response(200)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type")
+        self.end_headers()
 
     def _json(self, data, status=200):
         body = json.dumps(data).encode()
@@ -40,13 +48,6 @@ class handler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
         self.wfile.write(body)
-
-    def _cors(self, status):
-        self.send_response(status)
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
-        self.end_headers()
 
     def log_message(self, *_):
         pass

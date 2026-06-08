@@ -15,6 +15,16 @@
       <span>Freelance Hunter</span>
     </div>
 
+    <!-- User info -->
+    <div class="sidebar-user" id="sidebar-user">
+      <div class="su-avatar" id="su-avatar"></div>
+      <div class="su-info">
+        <div class="su-name" id="su-name">Загрузка...</div>
+        <div class="su-email" id="su-email"></div>
+      </div>
+      <button class="su-logout" title="Выйти" onclick="logout()">↩</button>
+    </div>
+
     <nav class="sidebar-nav">
       <a href="#" class="nav-item active" data-tab="all">
         <span class="nav-icon">📊</span>
@@ -22,13 +32,13 @@
       </a>
       <a href="#" class="nav-item" data-tab="review">
         <span class="nav-icon">⚡</span>
-        <span>Ожидают решения</span>
-        <span class="nav-badge" id="badge-review">0</span>
+        <span>На проверку</span>
+        <span class="nav-badge" id="badge-review" style="display:none">0</span>
       </a>
       <a href="#" class="nav-item" data-tab="approved">
         <span class="nav-icon">✅</span>
         <span>Подходящие</span>
-        <span class="nav-badge green" id="badge-approved">0</span>
+        <span class="nav-badge green" id="badge-approved" style="display:none">0</span>
       </a>
       <a href="#" class="nav-item" data-tab="profile">
         <span class="nav-icon">👤</span>
@@ -62,10 +72,9 @@
     <!-- Content -->
     <div class="content">
 
-      <!-- ══ TAB: all (dashboard) ══ -->
+      <!-- ══ TAB: all ══ -->
       <section class="tab-pane active" id="tab-all">
 
-        <!-- Stats -->
         <div class="stats-row">
           <div class="stat-card">
             <div class="stat-label">Новых сегодня</div>
@@ -76,7 +85,7 @@
             <div class="stat-value" id="stat-approved">—</div>
           </div>
           <div class="stat-card yellow">
-            <div class="stat-label">Требуют внимания</div>
+            <div class="stat-label">На проверку</div>
             <div class="stat-value" id="stat-review">—</div>
           </div>
           <div class="stat-card red">
@@ -85,36 +94,36 @@
           </div>
         </div>
 
-        <!-- Jobs list -->
         <div class="section-header">
           <h2 class="section-title">Все задания</h2>
           <div class="filter-row">
-            <button class="filter-btn active" data-filter="all" onclick="setFilter(this,'all')">Все</button>
-            <button class="filter-btn" data-filter="approved" onclick="setFilter(this,'approved')">✅ Подходящие</button>
-            <button class="filter-btn" data-filter="review" onclick="setFilter(this,'review')">⚡ На проверку</button>
-            <button class="filter-btn" data-filter="rejected" onclick="setFilter(this,'rejected')">❌ Отклонённые</button>
+            <button class="filter-btn active" data-filter="all"      onclick="setFilter(this,'all')">Все</button>
+            <button class="filter-btn"        data-filter="approved" onclick="setFilter(this,'approved')">✅ Подходящие</button>
+            <button class="filter-btn"        data-filter="review"   onclick="setFilter(this,'review')">⚡ Проверка</button>
+            <button class="filter-btn"        data-filter="rejected" onclick="setFilter(this,'rejected')">❌ Отклонённые</button>
           </div>
           <div class="filter-row" style="margin-top:8px">
-            <button class="filter-btn plt active" data-plt="all" onclick="setPlatform(this,'all')">🌐 Все платформы</button>
-            <button class="filter-btn plt" data-plt="fl.ru" onclick="setPlatform(this,'fl.ru')">🔵 FL.ru</button>
-            <button class="filter-btn plt" data-plt="freelancehunt" onclick="setPlatform(this,'freelancehunt')">🟡 Freelancehunt</button>
+            <button class="filter-btn plt active" data-plt="all"          onclick="setPlatform(this,'all')">🌐 Все</button>
+            <button class="filter-btn plt"        data-plt="fl.ru"        onclick="setPlatform(this,'fl.ru')">🔵 FL.ru</button>
+            <button class="filter-btn plt"        data-plt="freelancehunt" onclick="setPlatform(this,'freelancehunt')">🟡 Freelancehunt</button>
+            <button class="filter-btn plt"        data-plt="workzilla"    onclick="setPlatform(this,'workzilla')">🟢 Work-zilla</button>
+            <button class="filter-btn plt"        data-plt="weblancer"    onclick="setPlatform(this,'weblancer')">🔷 Weblancer</button>
           </div>
         </div>
 
         <div class="jobs-list" id="jobs-list">
           <div class="empty-state">
             <div class="empty-icon">📭</div>
-            <div class="empty-title">Заданий пока нет</div>
-            <div class="empty-hint">Нажми «Сканировать» чтобы загрузить задания с FL.ru</div>
+            <div class="empty-title">Нажми «Сканировать»</div>
+            <div class="empty-hint">Загрузим задания с 4 платформ и ИИ их отфильтрует</div>
           </div>
         </div>
-
       </section>
 
       <!-- ══ TAB: review ══ -->
       <section class="tab-pane" id="tab-review">
         <div class="section-header">
-          <h2 class="section-title">⚡ Ожидают решения</h2>
+          <h2 class="section-title">⚡ На проверку</h2>
         </div>
         <div class="jobs-list" id="review-list"></div>
       </section>
@@ -142,10 +151,9 @@
         </div>
       </section>
 
-    </div><!-- /content -->
+    </div>
   </main>
 
-  <!-- ── Toasts ─────────────────────────────────────────────────────────── -->
   <div id="toast-box"></div>
 
   <script src="app.js"></script>

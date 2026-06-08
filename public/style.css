@@ -276,6 +276,30 @@ input, textarea, select { font-family: inherit; }
 }
 .sidebar-logo span:first-child { -webkit-text-fill-color: initial; font-size: 20px; }
 
+/* ── Sidebar user bar ────────────────────────────────────────── */
+.sidebar-user {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+}
+.su-avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #a855f7);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700; color: #fff;
+  flex-shrink: 0; background-size: cover; background-position: center;
+}
+.su-info { flex: 1; min-width: 0; }
+.su-name  { font-size: 0.82rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.su-email { font-size: 0.72rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.su-logout {
+  background: none; border: none; color: var(--muted); font-size: 14px;
+  cursor: pointer; padding: 4px 6px; border-radius: 6px; flex-shrink: 0;
+  transition: color .15s, background .15s;
+}
+.su-logout:hover { color: var(--red); background: var(--red-bg); }
+
 .sidebar-nav {
   flex: 1; padding: 12px 10px;
   display: flex; flex-direction: column; gap: 3px; overflow-y: auto;

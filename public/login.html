@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Войти — Freelance Hunter</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Google Identity Services -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    .login-body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      background: var(--bg);
+      background-image:
+        radial-gradient(ellipse 70% 50% at 15% 20%, rgba(124,58,237,.1) 0%, transparent 55%),
+        radial-gradient(ellipse 50% 40% at 85% 80%, rgba(59,130,246,.07) 0%, transparent 55%);
+    }
+    .login-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 44px 40px;
+      box-shadow: 0 24px 64px rgba(0,0,0,.7);
+      text-align: center;
+      animation: fadeUp .3s ease;
+    }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+    .login-logo {
+      font-size: 2.8rem;
+      margin-bottom: 12px;
+      display: block;
+    }
+    .login-title {
+      font-size: 1.6rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #fff 30%, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+      letter-spacing: -.03em;
+    }
+    .login-subtitle {
+      color: var(--dim);
+      font-size: 0.88rem;
+      margin-bottom: 36px;
+      line-height: 1.6;
+    }
+
+    /* Features list */
+    .login-features {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 36px;
+      text-align: left;
+    }
+    .login-feature {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.85rem;
+      color: var(--dim);
+    }
+    .login-feature .fi { font-size: 18px; flex-shrink: 0; }
+    .login-feature strong { color: var(--text); display: block; font-size: 0.87rem; margin-bottom: 1px; }
+
+    /* Divider */
+    .login-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+    .login-divider::before,
+    .login-divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* Google button wrapper */
+    .google-btn-wrap {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 20px;
+    }
+
+    /* Custom Google button (used when GIS not ready) */
+    .google-btn-custom {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      width: 100%;
+      padding: 13px 20px;
+      background: #fff;
+      color: #3c4043;
+      border: 1px solid #dadce0;
+      border-radius: 10px;
+      font-size: 0.93rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: box-shadow .18s, background .18s;
+      font-family: inherit;
+    }
+    .google-btn-custom:hover { box-shadow: 0 2px 12px rgba(0,0,0,.25); background: #f8f9fa; }
+    .google-btn-custom img  { width: 20px; height: 20px; }
+
+    /* Demo mode button */
+    .demo-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 11px 20px;
+      background: none;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all .18s;
+      font-family: inherit;
+    }
+    .demo-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .login-footer {
+      margin-top: 28px;
+      font-size: 0.75rem;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .login-footer a { color: var(--accent); }
+
+    /* Loading state */
+    .login-loading {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      padding: 20px;
+    }
+    .login-loading .big-spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--border2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+    }
+    .login-loading p { color: var(--dim); font-size: 0.88rem; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .err-msg { color: var(--red); font-size: 0.83rem; margin-top: 12px; }
+  </style>
+</head>
+<body class="login-body">
+
+<div class="login-card" id="login-card">
+
+  <span class="login-logo">🎯</span>
+  <h1 class="login-title">Freelance Hunter</h1>
+  <p class="login-subtitle">ИИ-агент, который сам находит подходящие<br>задания под твой профиль</p>
+
+  <div class="login-features">
+    <div class="login-feature">
+      <span class="fi">🤖</span>
+      <div><strong>Умный ИИ-фильтр</strong> Groq llama-3.3-70b оценивает каждое задание по твоим навыкам</div>
+    </div>
+    <div class="login-feature">
+      <span class="fi">🌐</span>
+      <div><strong>4 платформы</strong> FL.ru · Freelancehunt · Work-zilla · Weblancer</div>
+    </div>
+    <div class="login-feature">
+      <span class="fi">⚡</span>
+      <div><strong>Мгновенно</strong> Одна кнопка — и все свежие задания уже отфильтрованы</div>
+    </div>
+  </div>
+
+  <div class="login-divider">Войти через</div>
+
+  <!-- Google Sign-In button (rendered by GIS) -->
+  <div class="google-btn-wrap" id="gsi-wrap">
+    <!-- Fallback custom button, replaced by GIS when loaded -->
+    <button class="google-btn-custom" id="google-fallback-btn" onclick="startGoogleAuth()">
+      <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Cpath fill='%23EA4335' d='M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z'/%3E%3Cpath fill='%234285F4' d='M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z'/%3E%3Cpath fill='%23FBBC05' d='M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z'/%3E%3Cpath fill='%2334A853' d='M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z'/%3E%3C/svg%3E" alt="Google">
+      Продолжить с Google
+    </button>
+  </div>
+
+  <!-- Demo mode (when Google not configured) -->
+  <div id="demo-wrap" style="display:none">
+    <button class="demo-btn" onclick="demoLogin()">
+      🧪 Попробовать без входа (демо)
+    </button>
+  </div>
+
+  <div class="err-msg hidden" id="err-msg"></div>
+
+  <!-- Loading -->
+  <div class="login-loading" id="login-loading">
+    <div class="big-spinner"></div>
+    <p id="loading-text">Входим...</p>
+  </div>
+
+  <div class="login-footer">
+    Входя в систему, ты соглашаешься с тем,<br>
+    что это демо-проект и данные хранятся в Redis.
+  </div>
+</div>
+
+<script>
+let googleClientId = "";
+
+async function init() {
+  try {
+    const res  = await fetch("/api/auth/config");
+    const data = await res.json();
+    googleClientId = data.google_client_id || "";
+
+    if (!data.auth_enabled) {
+      // No Google configured — show demo button
+      document.getElementById("google-fallback-btn").style.display = "none";
+      document.getElementById("demo-wrap").style.display = "block";
+      return;
+    }
+
+    // Wait for GIS to load, then render button
+    waitForGSI(() => renderGoogleBtn(googleClientId));
+  } catch {
+    document.getElementById("demo-wrap").style.display = "block";
+  }
+}
+
+function waitForGSI(cb, attempts = 0) {
+  if (window.google?.accounts?.id) {
+    cb();
+  } else if (attempts < 30) {
+    setTimeout(() => waitForGSI(cb, attempts + 1), 200);
+  }
+}
+
+function renderGoogleBtn(clientId) {
+  // Hide fallback, let GIS render its button
+  document.getElementById("google-fallback-btn").style.display = "none";
+
+  google.accounts.id.initialize({
+    client_id: clientId,
+    callback: handleCredentialResponse,
+    auto_select: false,
+  });
+
+  const wrap = document.getElementById("gsi-wrap");
+  google.accounts.id.renderButton(wrap, {
+    theme: "outline",
+    size: "large",
+    text: "continue_with",
+    shape: "rectangular",
+    width: 340,
+  });
+
+  // Try One Tap silently (auto sign-in returning users)
+  google.accounts.id.prompt();
+}
+
+function startGoogleAuth() {
+  // Fallback: if GIS not loaded yet
+  showErr("Загружаем Google... попробуй снова через секунду");
+}
+
+async function handleCredentialResponse(response) {
+  showLoading("Проверяем токен...");
+
+  const idToken = response.credential;
+
+  try {
+    const res  = await fetch("/api/auth/me", {
+      headers: { "Authorization": "Bearer " + idToken }
+    });
+
+    if (!res.ok) {
+      throw new Error("Auth failed: " + res.status);
+    }
+
+    const data = await res.json();
+
+    // Store token + user info
+    localStorage.setItem("fh_token", idToken);
+    localStorage.setItem("fh_user",  JSON.stringify(data.user));
+
+    showLoading("Загружаем профиль...");
+
+    // Check if profile exists → dashboard or onboarding
+    const profileRes = await fetch("/api/get-profile", {
+      headers: { "Authorization": "Bearer " + idToken }
+    });
+    const profileData = await profileRes.json();
+
+    if (profileData.exists) {
+      window.location.href = "/";
+    } else {
+      window.location.href = "/onboarding.html";
+    }
+  } catch (e) {
+    hideLoading();
+    showErr("Ошибка входа: " + e.message);
+  }
+}
+
+function demoLogin() {
+  // Demo mode: no real auth — use empty token, backend returns demo user
+  localStorage.setItem("fh_token", "demo");
+  localStorage.setItem("fh_user", JSON.stringify({
+    sub: "demo_user", email: "demo@example.com", name: "Demo", picture: ""
+  }));
+  window.location.href = "/onboarding.html";
+}
+
+function showLoading(text) {
+  document.getElementById("login-card").querySelectorAll(
+    ".login-features, .login-divider, .google-btn-wrap, .demo-wrap, .login-footer, .login-divider"
+  ).forEach(el => { if (el) el.style.display = "none"; });
+  document.getElementById("login-loading").style.display = "flex";
+  document.getElementById("loading-text").textContent = text;
+}
+
+function hideLoading() {
+  document.getElementById("login-loading").style.display = "none";
+}
+
+function showErr(msg) {
+  const el = document.getElementById("err-msg");
+  el.textContent = msg;
+  el.classList.remove("hidden");
+}
+
+// Check if already logged in
+(function() {
+  const token = localStorage.getItem("fh_token");
+  if (token) {
+    // Verify still valid
+    fetch("/api/auth/me", { headers: { "Authorization": "Bearer " + token } })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => {
+        if (d?.user) window.location.href = "/";
+      })
+      .catch(() => {});
+  }
+})();
+
+init();
+</script>
+
+</body>
+</html>
